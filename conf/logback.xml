@@ -13,7 +13,7 @@
   <appender name="FILE" class="ch.qos.logback.core.FileAppender">
     <file>${application.home:-.}/logs/click_tracker.log</file>
     <encoder>
-      <pattern>%date [%level] from %logger in %thread - %message%n%xException</pattern>
+      <pattern>%date{yyyy-MM-dd HH:mm:ss ZZZZ} %message%n</pattern>
     </encoder>
   </appender>
 
@@ -32,9 +32,9 @@
     <appender-ref ref="STDOUT" />
   </appender>
 
-  <logger name="play" level="INFO" />
+  <logger name="play" level="WARN" />
   <logger name="application" level="DEBUG" />
-  <logger name="click_tracker" level="DEBUG" />
+  <logger name="click_tracker" level="INFO" />
 
   <!-- Off these ones as they are annoying, and anyway we manage configuration ourselves -->
   <logger name="com.avaje.ebean.config.PropertyMapLoader" level="OFF" />
