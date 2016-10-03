@@ -10,24 +10,12 @@ import play.api.Play.current
 
 class DefaultDB(db:DBApi) {
 
-//  def test() = DB.withConnection { implicit conn =>
-//    val stmt = conn.createStatement()
-//    val rs = stmt.executeQuery("select id from short_utls where id = 1")
-//    rs.next()
-//    println(rs.getString(""))
-//  }
-//
-
   def insertURL(data:ShortURL) = db.database("default").withConnection { conn =>
     val table = "short_urls"
     val fields = "url, short_url"
-
-    //val duplicateKeyUpdate = " on duplicate key update url = VALUES(url), short_url = VALUES(short_url)"
-
-    //val upsert = s"insert into $table ( $fields ) VALUES ( '${data.url}', '${data.shortURL}' ) $duplicateKeyUpdate;"
-    val upsert = s"insert into $table ( $fields ) VALUES ( '${data.url}', '${data.shortURL}' ) ;"
-    Logger.debug(upsert)
-    val stmt = conn.prepareStatement(upsert)
+    val insert = s"insert into $table ( $fields ) VALUES ( '${data.url}', '${data.shortURL}' ) ;"
+    Logger.debug(insert)
+    val stmt = conn.prepareStatement(insert)
     stmt.executeUpdate()
   }
 
@@ -59,7 +47,5 @@ class DefaultDB(db:DBApi) {
       }
     urls.toList.headOption
   }
-
-
-
+  
 }
