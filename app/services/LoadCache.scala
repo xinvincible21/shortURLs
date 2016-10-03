@@ -10,16 +10,14 @@ import play.api.db.DBApi
 import utils.DefaultDB
 import play.api.cache.CacheApi
 
-trait Say {
-  def hello(): Unit
-  def goodbye(): Unit
+
+trait LoadCache {
+  def start()
 }
 
 @Singleton
-class SayImpl @Inject() (appLifecycle: ApplicationLifecycle, cache:CacheApi, db:DBApi) extends Say {
-  override def hello(): Unit = println("Hello!")
-  override def goodbye(): Unit = println("Goodbye!")
-
+class LoadCacheImpl @Inject()(appLifecycle: ApplicationLifecycle, cache:CacheApi, db:DBApi) extends LoadCache{
+  
   // You can do this, or just explicitly call `hello()` at the end
   def start(): Unit = {
     val defaultDB = new DefaultDB(db)
@@ -34,15 +32,7 @@ class SayImpl @Inject() (appLifecycle: ApplicationLifecycle, cache:CacheApi, db:
     }
 
   }
-
-  // When the application starts, register a stop hook with the
-  // ApplicationLifecycle object. The code inside the stop hook will
-  // be run when the application stops.
-  appLifecycle.addStopHook { () =>
-    goodbye()
-    Future.successful(())
-  }
-
+  
   // Called when this singleton is constructed (could be replaced by `hello()`)
   start()
 }

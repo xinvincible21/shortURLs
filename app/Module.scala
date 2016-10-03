@@ -2,8 +2,8 @@ import com.google.inject.AbstractModule
 import java.time.Clock
 
 import services.{ApplicationTimer, AtomicCounter, Counter}
-import services.SayImpl
-import services.Say
+import services.LoadCacheImpl
+import services.LoadCache
 
 /**
  * This class is a Guice module that tells Guice how to bind several
@@ -23,12 +23,10 @@ class Module extends AbstractModule {
     // Ask Guice to create an instance of ApplicationTimer when the
     // application starts.
     bind(classOf[ApplicationTimer]).asEagerSingleton()
-    // Set AtomicCounter as the implementation for Counter.
-    bind(classOf[Counter]).to(classOf[AtomicCounter])
 
     // We bind the implementation to the interface (trait) as an eager singleton,
     // which means it is bound immediately when the application starts.
-    bind(classOf[Say]).to(classOf[SayImpl]).asEagerSingleton()
+    bind(classOf[LoadCache]).to(classOf[LoadCacheImpl]).asEagerSingleton()
   }
 
 }

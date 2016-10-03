@@ -1,9 +1,7 @@
 package controllers
 
-import akka.actor.ActorSystem
 import javax.inject._
 
-import play.api.db.DB
 import play.api.db.Database
 import play.api.Play.current
 import play.api.db.DBApi
@@ -24,34 +22,15 @@ import utils.DefaultDB
 import utils.Config.baseURL
 import play.api.Logger
 
-
-/**
- * This controller creates an `Action` that demonstrates how to write
- * simple asynchronous code in a controller. It uses a timer to
- * asynchronously delay sending a response for 1 second.
- *
- * @param actorSystem We need the `ActorSystem`'s `Scheduler` to
- * run code after a delay.
- * @param exec We need an `ExecutionContext` to execute our
- * asynchronous code.
- */
 @Singleton
-class AsyncController @Inject() (actorSystem: ActorSystem,cache:CacheApi, db: DBApi)(implicit exec: ExecutionContext) extends Controller{
+class AsyncController @Inject() (cache:CacheApi, db: DBApi)(implicit exec: ExecutionContext) extends Controller{
   val clickTracker = Logger("click_tracker")
-  /**
-   * Create an Action that returns a plain text message after a delay
-   * of 1 second.
-   *
-   * The configuration in the `routes` file means that this method
-   * will be called when the application receives a `GET` request with
-   * a path of `/message`.
-   */
+  val applicationLogger = Logger("application")
 
   def countClicks(hash:String) = Action.async{ request =>
     val url = s"$baseURL/$hash"
-    println(s"$url clicked")
     val urlNoTrailingSlash = removeTrailingSlash(url = url)
-    clickTracker.info(s"$urlNoTrailingSlash,1")
+    clickTracker.info(s"$urlNoTrailingSlash|1")
 
     val future =
     cache.get[ShortURL](urlNoTrailingSlash) match {
@@ -66,20 +45,13 @@ class AsyncController @Inject() (actorSystem: ActorSystem,cache:CacheApi, db: DB
     future
   }
 
-  def message = Action.async {
-    getFutureMessage(1.second).map { msg => Ok(msg) }
-  }
-
-  private def getFutureMessage(delayTime: FiniteDuration): Future[String] = {
-    val promise: Promise[String] = Promise[String]()
-    actorSystem.scheduler.scheduleOnce(delayTime) { promise.success("Hi!") }
-    promise.future
+  def index = Action {
+    Ok(views.html.index("Your new application is ready."))
   }
 
   def createURL(url:String) = {
     val random = Random.alphanumeric.take(7).mkString
     val shortURL = ShortURL(url = url, shortURL = s"$baseURL/$random")
-    println(shortURL)
     shortURL
   }
 
@@ -101,19 +73,18 @@ class AsyncController @Inject() (actorSystem: ActorSystem,cache:CacheApi, db: DB
     val future = Future {
         cache.get[ShortURL](urlNoTrailingSlash) match {
           case Some(cachedURL) =>
-            Logger.info(s"key $urlNoTrailingSlash value $cachedURL retrieved from cache.")
+            applicationLogger.info(s"key $urlNoTrailingSlash value $cachedURL retrieved from cache.")
             cachedURL
           case None =>
             val shortURL = createURL(url = urlNoTrailingSlash)
             defaultDB.insertURL(shortURL)
-            Logger.info(s"inserting url key $urlNoTrailingSlash value $shortURL into cache.")
+            applicationLogger.logger.info(s"inserting url key $urlNoTrailingSlash value $shortURL into cache.")
             cache.set(urlNoTrailingSlash, shortURL)
-            Logger.info(s"inserting url key ${shortURL.shortURL} value $shortURL into cache.")
+            applicationLogger.info(s"inserting url key ${shortURL.shortURL} value $shortURL into cache.")
             cache.set(shortURL.shortURL, shortURL)
             shortURL
         }
     }
-    println(cache)
     future.map(r => Ok(Json.toJson(r)))
   }
 
@@ -122,17 +93,27 @@ class AsyncController @Inject() (actorSystem: ActorSystem,cache:CacheApi, db: DB
 
     val urlNoTrailingSlash = removeTrailingSlash(url = url)
 
-    val test =
+    val optLongURL =
     cache.get[ShortURL](urlNoTrailingSlash) match {
       case Some(cachedURL) =>
-        Logger.info(s"key $urlNoTrailingSlash value $cachedURL retrieved from cache.")
+        applicationLogger.info(s"key $urlNoTrailingSlash value $cachedURL retrieved from cache.")
         Some(cachedURL.url)
-      case None => defaultDB.findLongURL(urlNoTrailingSlash)
+      case None =>
+        defaultDB.findLongURL(urlNoTrailingSlash) match {
+          case Some(dbURL) =>
+            val shortURL = ShortURL(url = dbURL, shortURL = urlNoTrailingSlash)
+            applicationLogger.info(s"inserting url key $urlNoTrailingSlash value $shortURL into cache.")
+            cache.set(urlNoTrailingSlash, shortURL)
+            applicationLogger.info(s"inserting url key ${shortURL.shortURL} value $shortURL into cache.")
+            cache.set(shortURL.shortURL, shortURL)
+            Option(dbURL)
+          case None => None
+        }
       }
 
-    val future = Future{test}
+    val future = Future{optLongURL}
       future.map {
-        case Some(url) => Ok(Json.toJson(url))
+        case Some(longURL) => Ok(Json.toJson(longURL))
         case None => BadRequest(Json.toJson(s"url $url not found."))
       }
   }
