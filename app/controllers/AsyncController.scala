@@ -2,15 +2,11 @@ package controllers
 
 import javax.inject._
 
-import play.api.db.Database
-import play.api.Play.current
 import play.api.db.DBApi
 
-import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
 import play.api.cache._
 import play.api.mvc._
-import javax.inject.Inject
 
 import scala.util.Random
 import play.api.libs.json._
@@ -65,10 +61,6 @@ class AsyncController @Inject() (cache:CacheApi, db: DBApi)(implicit exec: Execu
   def shorten(url: String) = Action.async{
     val urlNoTrailingSlash = removeTrailingSlash(url = url)
     val defaultDB = new DefaultDB(db)
-    // check URL exists
-    // if true
-    // return URL
-    // else create new ShortURL add to cache
 
     val future = Future {
         cache.get[ShortURL](urlNoTrailingSlash) match {
