@@ -22,9 +22,10 @@ class DefaultDB(db:DBApi) {
     val table = "short_urls"
     val fields = "url, short_url"
 
-    val duplicateKeyUpdate = " on duplicate key update url = VALUES(url), short_url = VALUES(short_url)"
+    //val duplicateKeyUpdate = " on duplicate key update url = VALUES(url), short_url = VALUES(short_url)"
 
-    val upsert = s"insert into $table ( $fields ) VALUES ( '${data.url}', '${data.shortURL}' ) $duplicateKeyUpdate;"
+    //val upsert = s"insert into $table ( $fields ) VALUES ( '${data.url}', '${data.shortURL}' ) $duplicateKeyUpdate;"
+    val upsert = s"insert into $table ( $fields ) VALUES ( '${data.url}', '${data.shortURL}' ) ;"
     Logger.debug(upsert)
     val stmt = conn.prepareStatement(upsert)
     stmt.executeUpdate()
@@ -44,6 +45,19 @@ class DefaultDB(db:DBApi) {
         )
       }
     urls.toList
+  }
+
+  def findLongURL(shortURL:String) = db.database("default").withConnection { conn =>
+    val stmt = conn.createStatement()
+    val q = s"select url from short_urls where short_url = '$shortURL'"
+    Logger.debug(q)
+    val rs = stmt.executeQuery(q)
+
+    val urls =
+      Iterator.continually ((rs, rs.next)).takeWhile (_._2).map (_._1).map {result =>
+          result.getString("url")
+      }
+    urls.toList.headOption
   }
 
 
