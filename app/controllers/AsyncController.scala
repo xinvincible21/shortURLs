@@ -34,7 +34,13 @@ class AsyncController @Inject() (cache:CacheApi, db: DBApi)(implicit exec: Execu
       case None =>
         val defaultDB = new DefaultDB(db)
         defaultDB.findLongURL(shortURL = urlNoTrailingSlash) match {
-          case Some(dbURL) => Future(Redirect(dbURL))
+          case Some(dbURL) =>
+            val shortURL = ShortURL(url = urlNoTrailingSlash, shortURL = dbURL)
+            applicationLogger.logger.info(s"inserting url key $urlNoTrailingSlash value $shortURL into cache.")
+            cache.set(urlNoTrailingSlash, shortURL)
+            applicationLogger.info(s"inserting url key $dbURL value $shortURL into cache.")
+            cache.set(dbURL, shortURL)
+            Future(Redirect(dbURL))
           case None => Future(Ok(Json.toJson(s"url $url not found.")))
         }
     }
