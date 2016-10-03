@@ -1,12 +1,8 @@
 package utils
 
-import java.sql.Statement._
-
 import play.api.Logger
-import play.api.libs.json._
 import models.ShortURL
 import play.api.db.{DB, DBApi, Database}
-import play.api.Play.current
 
 class DefaultDB(db:DBApi) {
 
@@ -47,5 +43,5 @@ class DefaultDB(db:DBApi) {
       }
     urls.toList.headOption
   }
-  
+
 }
