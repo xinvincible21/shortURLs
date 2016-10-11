@@ -13,7 +13,8 @@ libraryDependencies ++= Seq(
   cache,
   ws,
   "org.scalatestplus.play" %% "scalatestplus-play" % "1.5.1" % Test,
-  "mysql" % "mysql-connector-java" % "5.1.36"
+  "mysql" % "mysql-connector-java" % "5.1.36",
+  "commons-validator" % "commons-validator" % "1.4.0"
 )
 
 routesGenerator := InjectedRoutesGenerator

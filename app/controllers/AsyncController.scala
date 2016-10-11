@@ -17,6 +17,7 @@ import javax.inject.Inject
 import utils.DefaultDB
 import utils.Config.baseURL
 import play.api.Logger
+import org.apache.commons.validator.routines.UrlValidator
 
 @Singleton
 class AsyncController @Inject() (cache:CacheApi, db: DBApi)(implicit exec: ExecutionContext) extends Controller{
@@ -63,29 +64,42 @@ class AsyncController @Inject() (cache:CacheApi, db: DBApi)(implicit exec: Execu
     }
   }
 
+  def validate(url:String) = {
+    val schemes = Array("http","https")
+    val urlValidator = new UrlValidator(schemes)
+    urlValidator.isValid(url)
+  }
+
   def shorten(url: String) = Action.async{
-    val urlNoTrailingSlash = removeTrailingSlash(url = url)
-    val defaultDB = new DefaultDB(db)
 
-    val future = Future {
-        cache.get[ShortURL](urlNoTrailingSlash) match {
-          case Some(cachedURL) =>
-            applicationLogger.info(s"key $urlNoTrailingSlash value $cachedURL retrieved from cache.")
-            cachedURL
-          case None =>
+    validate(url = url) match {
+      case true =>
+        val urlNoTrailingSlash = removeTrailingSlash(url = url)
+        val defaultDB = new DefaultDB(db)
 
-            val id = defaultDB.findNextID()
-            val base36 = java.lang.Long.toString(id, 36)
-            val shortURL = createURL(url = urlNoTrailingSlash, base36 = base36)
-            defaultDB.insertURL(shortURL)
-            applicationLogger.logger.info(s"inserting url key $urlNoTrailingSlash value $shortURL into cache.")
-            cache.set(urlNoTrailingSlash, shortURL)
-            applicationLogger.info(s"inserting url key ${shortURL.shortURL} value $shortURL into cache.")
-            cache.set(shortURL.shortURL, shortURL)
-            shortURL
+        val future = Future {
+          cache.get[ShortURL](urlNoTrailingSlash) match {
+            case Some(cachedURL) =>
+              applicationLogger.info(s"key $urlNoTrailingSlash value $cachedURL retrieved from cache.")
+              cachedURL
+            case None =>
+
+              val id = defaultDB.findNextID()
+              val base36 = java.lang.Long.toString(id, 36)
+              val shortURL = createURL(url = urlNoTrailingSlash, base36 = base36)
+              defaultDB.insertURL(shortURL)
+              applicationLogger.logger.info(s"inserting url key $urlNoTrailingSlash value $shortURL into cache.")
+              cache.set(urlNoTrailingSlash, shortURL)
+              applicationLogger.info(s"inserting url key ${shortURL.shortURL} value $shortURL into cache.")
+              cache.set(shortURL.shortURL, shortURL)
+              shortURL
+          }
         }
+        future.map(r => Ok(Json.toJson(r)))
+
+      case false =>
+        Future(BadRequest(Json.obj("error" -> "invalid url.")))
     }
-    future.map(r => Ok(Json.toJson(r)))
   }
 
   def lengthen(url:String) = Action.async {
