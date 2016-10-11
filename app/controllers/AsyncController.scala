@@ -51,9 +51,8 @@ class AsyncController @Inject() (cache:CacheApi, db: DBApi)(implicit exec: Execu
     Ok(views.html.index("Your new application is ready."))
   }
 
-  def createURL(url:String) = {
-    val random = Random.alphanumeric.take(7).mkString
-    val shortURL = ShortURL(url = url, shortURL = s"$baseURL/$random")
+  def createURL(url:String, base36:String) = {
+    val shortURL = ShortURL(url = url, shortURL = s"$baseURL/$base36")
     shortURL
   }
 
@@ -74,7 +73,10 @@ class AsyncController @Inject() (cache:CacheApi, db: DBApi)(implicit exec: Execu
             applicationLogger.info(s"key $urlNoTrailingSlash value $cachedURL retrieved from cache.")
             cachedURL
           case None =>
-            val shortURL = createURL(url = urlNoTrailingSlash)
+
+            val id = defaultDB.findNextID()
+            val base36 = java.lang.Long.toString(id, 36)
+            val shortURL = createURL(url = urlNoTrailingSlash, base36 = base36)
             defaultDB.insertURL(shortURL)
             applicationLogger.logger.info(s"inserting url key $urlNoTrailingSlash value $shortURL into cache.")
             cache.set(urlNoTrailingSlash, shortURL)
